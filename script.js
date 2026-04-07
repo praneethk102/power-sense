@@ -32,5 +32,9 @@ async function loadData() {
 
   document.getElementById("insight").innerText = insight;
 }
+document.body.insertAdjacentHTML(
+  "beforeend",
+  `<p>Data Date: ${data.date}</p>`
+);
 
 loadData();
