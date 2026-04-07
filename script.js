@@ -1,6 +1,9 @@
 async function loadData() {
   const res = await fetch('data.json');
-  const data = await res.json();
+  const json = await res.json();
+
+  const data = json.today;
+  const yesterday = json.yesterday;
 
   // Chart
   const ctx = document.getElementById('energyChart');
@@ -21,13 +24,12 @@ async function loadData() {
     }
   });
 
-  // Last updated time
+  // Last updated
   document.getElementById("lastUpdated").innerText =
     "Last Updated: " + data.date;
 
-  // Insight logic (keep it simple but meaningful)
+  // Insight
   let insight = "";
-
   if (data.coal > 50) {
     insight = "High coal usage today";
   } else if (data.solar < 20) {
@@ -37,6 +39,24 @@ async function loadData() {
   }
 
   document.getElementById("insight").innerText = insight;
+
+  // Comparison logic (THIS is key)
+  let changes = [];
+
+  if (data.coal > yesterday.coal) {
+    changes.push("Coal ↑");
+  } else if (data.coal < yesterday.coal) {
+    changes.push("Coal ↓");
+  }
+
+  if (data.solar > yesterday.solar) {
+    changes.push("Solar ↑");
+  } else if (data.solar < yesterday.solar) {
+    changes.push("Solar ↓");
+  }
+
+  document.getElementById("comparison").innerText =
+    "Change vs Yesterday: " + changes.join(", ");
 }
 
 loadData();
