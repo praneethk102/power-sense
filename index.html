@@ -1,72 +1,162 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>PowerSense India</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+let pieChart, trendChart;
 
-  <link rel="stylesheet" href="style.css">
-</head>
+async function loadData(days = 7) {
+  const res = await fetch('data.json');
+  const json = await res.json();
 
-<body>
+  const allData = json.data;
 
-  <div class="app">
+  const filtered = allData.slice(-days);
 
-    <!-- HEADER -->
-    <header class="header">
-      <div>
-        <h1>PowerSense India</h1>
-        <p>Energy Analytics Dashboard</p>
-      </div>
+  const todayRaw = filtered[filtered.length - 1];
+  const yesterdayRaw = filtered[filtered.length - 2];
 
-      <button id="themeToggle">🌙</button>
-    </header>
+  const today = convertData(todayRaw);
+  const yesterday = convertData(yesterdayRaw);
 
-    <!-- CONTROLS -->
-    <div class="controls">
-      <select id="timeframe">
-        <option value="7">7 Days</option>
-        <option value="30">30 Days</option>
-        <option value="365">1 Year</option>
-      </select>
-    </div>
+  document.getElementById("lastUpdated").innerText =
+    "Last Updated: " + today.date;
 
-    <!-- GRID -->
-    <div class="grid">
+  renderSummary(filtered);
+  renderPieChart(today);
+  renderTrendChart(filtered);
 
-      <div class="card highlight">
-        <p id="lastUpdated"></p>
-        <h2 id="summary"></h2>
-      </div>
+  renderInsight(today, yesterday);
+  renderComparison(today, yesterday);
+}
 
-      <div class="card">
-        <h3>Energy Mix</h3>
-        <canvas id="energyChart"></canvas>
-      </div>
 
-      <div class="card wide">
-        <h3>Trend (MU)</h3>
-        <canvas id="trendChart"></canvas>
-      </div>
+// Convert raw → app format
+function convertData(d) {
+  const solar = Math.round(d.renewable * 0.6);
+  const wind = Math.round(d.renewable * 0.4);
 
-      <div class="card">
-        <h3>Yearly (BU)</h3>
-        <canvas id="yearChart"></canvas>
-        <p id="yearSummary"></p>
-      </div>
+  return {
+    date: d.date,
+    solar,
+    wind,
+    coal: d.thermal,
+    hydro: d.hydro,
+    nuclear: d.nuclear
+  };
+}
 
-      <div class="card">
-        <h3>Insights</h3>
-        <p id="insight"></p>
-        <p id="comparison"></p>
-      </div>
 
-    </div>
+// Summary
+function renderSummary(data) {
+  let total = 0;
 
-  </div>
+  data.forEach(d => {
+    total += d.thermal + d.renewable + d.hydro + d.nuclear;
+  });
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="script.js"></script>
+  const avg = Math.round(total / data.length);
 
-</body>
-</html>
+  document.getElementById("summary").innerText =
+    `Total: ${total} MU | Avg/day: ${avg} MU`;
+}
+
+
+// PIE
+function renderPieChart(data) {
+  if (pieChart) pieChart.destroy();
+
+  const ctx = document.getElementById('energyChart');
+
+  pieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Solar', 'Wind', 'Coal', 'Hydro', 'Nuclear'],
+      datasets: [{
+        data: [
+          data.solar,
+          data.wind,
+          data.coal,
+          data.hydro,
+          data.nuclear
+        ]
+      }]
+    }
+  });
+}
+
+
+// BAR TREND
+function renderTrendChart(data) {
+  if (trendChart) trendChart.destroy();
+
+  const labels = data.map(d => d.date);
+
+  const coal = data.map(d => d.thermal);
+  const renewable = data.map(d => d.renewable);
+  const hydro = data.map(d => d.hydro);
+  const nuclear = data.map(d => d.nuclear);
+
+  const ctx = document.getElementById('trendChart');
+
+  trendChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Coal', data: coal },
+        { label: 'Renewable', data: renewable },
+        { label: 'Hydro', data: hydro },
+        { label: 'Nuclear', data: nuclear }
+      ]
+    }
+  });
+}
+
+
+// Insight
+function renderInsight(today, yesterday) {
+  let insights = [];
+
+  if (today.coal > yesterday.coal) {
+    insights.push("Demand increased → coal usage up");
+  }
+
+  if (today.solar < yesterday.solar) {
+    insights.push("Solar output decreased");
+  }
+
+  if (today.wind > yesterday.wind) {
+    insights.push("Wind energy improved");
+  }
+
+  if (insights.length === 0) {
+    insights.push("Energy usage stable");
+  }
+
+  document.getElementById("insight").innerText =
+    insights.join(" | ");
+}
+
+
+// Comparison
+function renderComparison(today, yesterday) {
+  let changes = [];
+
+  if (today.coal > yesterday.coal) changes.push("Coal ↑");
+  else if (today.coal < yesterday.coal) changes.push("Coal ↓");
+
+  if (today.solar > yesterday.solar) changes.push("Solar ↑");
+  else if (today.solar < yesterday.solar) changes.push("Solar ↓");
+
+  if (today.wind > yesterday.wind) changes.push("Wind ↑");
+  else if (today.wind < yesterday.wind) changes.push("Wind ↓");
+
+  document.getElementById("comparison").innerText =
+    "Change vs Yesterday: " + changes.join(", ");
+}
+
+
+// Timeframe change
+document.getElementById("timeframe").addEventListener("change", (e) => {
+  loadData(parseInt(e.target.value));
+});
+
+
+// Initial load
+loadData(7);
