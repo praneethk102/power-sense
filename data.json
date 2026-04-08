@@ -1,18 +1,60 @@
 {
-  "today": {
-    "date": "2026-04-07",
-    "solar": 18,
-    "wind": 12,
-    "coal": 60,
-    "hydro": 7,
-    "nuclear": 3
-  },
-  "yesterday": {
-    "date": "2026-04-06",
-    "solar": 22,
-    "wind": 10,
-    "coal": 55,
-    "hydro": 8,
-    "nuclear": 5
-  }
+  "data": [
+    {
+      "date": "2026-04-01",
+      "thermal": 3920,
+      "renewable": 465,
+      "hydro": 338,
+      "nuclear": 178
+    },
+    {
+      "date": "2026-04-02",
+      "thermal": 3955,
+      "renewable": 478,
+      "hydro": 342,
+      "nuclear": 180
+    },
+    {
+      "date": "2026-04-03",
+      "thermal": 3982,
+      "renewable": 490,
+      "hydro": 335,
+      "nuclear": 179
+    },
+    {
+      "date": "2026-04-04",
+      "thermal": 3940,
+      "renewable": 512,
+      "hydro": 340,
+      "nuclear": 181
+    },
+    {
+      "date": "2026-04-05",
+      "thermal": 3820,
+      "renewable": 525,
+      "hydro": 330,
+      "nuclear": 179
+    },
+    {
+      "date": "2026-04-06",
+      "thermal": 4010,
+      "renewable": 485,
+      "hydro": 345,
+      "nuclear": 180
+    },
+    {
+      "date": "2026-04-07",
+      "thermal": 4035,
+      "renewable": 470,
+      "hydro": 348,
+      "nuclear": 181
+    },
+    {
+      "date": "2026-04-08",
+      "thermal": 4050,
+      "renewable": 460,
+      "hydro": 350,
+      "nuclear": 181
+    }
+  ]
 }

@@ -13,16 +13,29 @@
   <div class="container">
 
     <h1>PowerSense India</h1>
-    <p class="subtitle">Live Energy Mix + Smart Insights</p>
+    <p class="subtitle">Energy Mix + Trends (Unit: MU)</p>
+
+    <!-- Timeframe selector -->
+    <select id="timeframe">
+      <option value="7">Last 7 Days</option>
+      <option value="30">Last 30 Days</option>
+      <option value="365">Last 1 Year</option>
+    </select>
 
     <div class="card">
-      <p id="lastUpdated"></p>
-      <p id="weatherUI"></p>
 
+      <p id="lastUpdated"></p>
+      <p id="summary"></p>
+
+      <!-- PIE -->
       <canvas id="energyChart"></canvas>
+
+      <!-- BAR -->
+      <canvas id="trendChart"></canvas>
 
       <p id="insight"></p>
       <p id="comparison"></p>
+
     </div>
 
   </div>

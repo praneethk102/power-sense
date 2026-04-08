@@ -1,39 +1,69 @@
-async function loadData() {
-  try {
-    const res = await fetch('data.json');
-    const json = await res.json();
+let pieChart, trendChart;
 
-    const today = json.today;
-    const yesterday = json.yesterday;
+async function loadData(days = 7) {
+  const res = await fetch('data.json');
+  const json = await res.json();
 
-    // Fetch weather
-    const weather = await fetchWeather();
-    today.weather = weather.condition;
+  const allData = json.data;
 
-    // UI updates
-    document.getElementById("lastUpdated").innerText =
-      "Last Updated: " + today.date;
+  const filtered = allData.slice(-days);
 
-    document.getElementById("weatherUI").innerText =
-      `Weather: ${weather.condition} | ${weather.temp}°C`;
+  const todayRaw = filtered[filtered.length - 1];
+  const yesterdayRaw = filtered[filtered.length - 2];
 
-    renderChart(today);
-    renderInsight(today, yesterday);
-    renderComparison(today, yesterday);
+  const today = convertData(todayRaw);
+  const yesterday = convertData(yesterdayRaw);
 
-  } catch (err) {
-    console.error(err);
-    document.getElementById("insight").innerText =
-      "Error loading data";
-  }
+  document.getElementById("lastUpdated").innerText =
+    "Last Updated: " + today.date;
+
+  renderSummary(filtered);
+  renderPieChart(today);
+  renderTrendChart(filtered);
+
+  renderInsight(today, yesterday);
+  renderComparison(today, yesterday);
 }
 
 
-// Chart
-function renderChart(data) {
+// Convert raw → app format
+function convertData(d) {
+  const solar = Math.round(d.renewable * 0.6);
+  const wind = Math.round(d.renewable * 0.4);
+
+  return {
+    date: d.date,
+    solar,
+    wind,
+    coal: d.thermal,
+    hydro: d.hydro,
+    nuclear: d.nuclear
+  };
+}
+
+
+// Summary
+function renderSummary(data) {
+  let total = 0;
+
+  data.forEach(d => {
+    total += d.thermal + d.renewable + d.hydro + d.nuclear;
+  });
+
+  const avg = Math.round(total / data.length);
+
+  document.getElementById("summary").innerText =
+    `Total: ${total} MU | Avg/day: ${avg} MU`;
+}
+
+
+// PIE
+function renderPieChart(data) {
+  if (pieChart) pieChart.destroy();
+
   const ctx = document.getElementById('energyChart');
 
-  new Chart(ctx, {
+  pieChart = new Chart(ctx, {
     type: 'pie',
     data: {
       labels: ['Solar', 'Wind', 'Coal', 'Hydro', 'Nuclear'],
@@ -51,25 +81,31 @@ function renderChart(data) {
 }
 
 
-// Weather API
-async function fetchWeather() {
-  const API_KEY = "bd5e378503939ddaee76f12ad7a97608"; // replace
+// BAR TREND
+function renderTrendChart(data) {
+  if (trendChart) trendChart.destroy();
 
-  const url = `https://api.openweathermap.org/data/2.5/weather?q=Bangalore&appid=${API_KEY}&units=metric`;
+  const labels = data.map(d => d.date);
 
-  const res = await fetch(url);
-  const data = await res.json();
+  const coal = data.map(d => d.thermal);
+  const renewable = data.map(d => d.renewable);
+  const hydro = data.map(d => d.hydro);
+  const nuclear = data.map(d => d.nuclear);
 
-  const condition = data.weather[0].main.toLowerCase();
-  const temp = Math.round(data.main.temp);
+  const ctx = document.getElementById('trendChart');
 
-  let mapped = "normal";
-
-  if (condition.includes("cloud")) mapped = "cloudy";
-  else if (condition.includes("rain")) mapped = "rainy";
-  else if (condition.includes("clear")) mapped = "sunny";
-
-  return { condition: mapped, temp };
+  trendChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Coal', data: coal },
+        { label: 'Renewable', data: renewable },
+        { label: 'Hydro', data: hydro },
+        { label: 'Nuclear', data: nuclear }
+      ]
+    }
+  });
 }
 
 
@@ -77,16 +113,12 @@ async function fetchWeather() {
 function renderInsight(today, yesterday) {
   let insights = [];
 
-  if (today.solar < yesterday.solar) {
-    if (today.weather === "cloudy") {
-      insights.push("Solar dropped due to cloudy weather");
-    } else {
-      insights.push("Solar output decreased");
-    }
+  if (today.coal > yesterday.coal) {
+    insights.push("Demand increased → coal usage up");
   }
 
-  if (today.coal > yesterday.coal) {
-    insights.push("Coal usage increased (higher demand)");
+  if (today.solar < yesterday.solar) {
+    insights.push("Solar output decreased");
   }
 
   if (today.wind > yesterday.wind) {
@@ -94,7 +126,7 @@ function renderInsight(today, yesterday) {
   }
 
   if (insights.length === 0) {
-    insights.push("Energy mix is stable");
+    insights.push("Energy usage stable");
   }
 
   document.getElementById("insight").innerText =
@@ -120,4 +152,11 @@ function renderComparison(today, yesterday) {
 }
 
 
-loadData();
+// Timeframe change
+document.getElementById("timeframe").addEventListener("change", (e) => {
+  loadData(parseInt(e.target.value));
+});
+
+
+// Initial load
+loadData(7);
