@@ -10,31 +10,56 @@
 
 <body>
 
-  <div class="container">
+  <div class="app">
 
-    <h1>PowerSense India</h1>
-    <p class="subtitle">Energy Mix + Trends (Unit: MU)</p>
+    <!-- HEADER -->
+    <header class="header">
+      <div>
+        <h1>PowerSense India</h1>
+        <p>Energy Analytics Dashboard</p>
+      </div>
 
-    <!-- Timeframe selector -->
-    <select id="timeframe">
-      <option value="7">Last 7 Days</option>
-      <option value="30">Last 30 Days</option>
-      <option value="365">Last 1 Year</option>
-    </select>
+      <button id="themeToggle">🌙</button>
+    </header>
 
-    <div class="card">
+    <!-- CONTROLS -->
+    <div class="controls">
+      <select id="timeframe">
+        <option value="7">7 Days</option>
+        <option value="30">30 Days</option>
+        <option value="365">1 Year</option>
+      </select>
+    </div>
 
-      <p id="lastUpdated"></p>
-      <p id="summary"></p>
+    <!-- GRID -->
+    <div class="grid">
 
-      <!-- PIE -->
-      <canvas id="energyChart"></canvas>
+      <div class="card highlight">
+        <p id="lastUpdated"></p>
+        <h2 id="summary"></h2>
+      </div>
 
-      <!-- BAR -->
-      <canvas id="trendChart"></canvas>
+      <div class="card">
+        <h3>Energy Mix</h3>
+        <canvas id="energyChart"></canvas>
+      </div>
 
-      <p id="insight"></p>
-      <p id="comparison"></p>
+      <div class="card wide">
+        <h3>Trend (MU)</h3>
+        <canvas id="trendChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Yearly (BU)</h3>
+        <canvas id="yearChart"></canvas>
+        <p id="yearSummary"></p>
+      </div>
+
+      <div class="card">
+        <h3>Insights</h3>
+        <p id="insight"></p>
+        <p id="comparison"></p>
+      </div>
 
     </div>
 
