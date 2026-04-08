@@ -1,209 +1,162 @@
-let pieChart, trendChart, yearChart;
+let pieChart, trendChart;
 
-/* =========================
-   THEME TOGGLE
-========================= */
-const savedTheme = localStorage.getItem("theme");
-if (savedTheme === "light") {
-  document.body.classList.add("light");
-}
-
-document.getElementById("themeToggle").addEventListener("click", () => {
-  document.body.classList.toggle("light");
-
-  if (document.body.classList.contains("light")) {
-    localStorage.setItem("theme", "light");
-  } else {
-    localStorage.setItem("theme", "dark");
-  }
-});
-
-/* =========================
-   LOAD DATA
-========================= */
 async function loadData(days = 7) {
-  try {
-    const res = await fetch('data.json');
-    const json = await res.json();
+  const res = await fetch('data.json');
+  const json = await res.json();
 
-    const all = json.daily;
-    const yearly = json.yearly;
+  const allData = json.data;
 
-    const data = all.slice(-days);
+  const filtered = allData.slice(-days);
 
-    const today = convert(data[data.length - 1]);
-    const yesterday = convert(data[data.length - 2]);
+  const todayRaw = filtered[filtered.length - 1];
+  const yesterdayRaw = filtered[filtered.length - 2];
 
-    document.getElementById("lastUpdated").innerText =
-      "Updated: " + today.date;
+  const today = convertData(todayRaw);
+  const yesterday = convertData(yesterdayRaw);
 
-    renderSummary(data);
-    renderPie(today);
-    renderTrend(data);
-    renderYear(yearly);
-    renderInsight(today, yesterday);
+  document.getElementById("lastUpdated").innerText =
+    "Last Updated: " + today.date;
 
-  } catch (err) {
-    console.error("Error loading data:", err);
-  }
+  renderSummary(filtered);
+  renderPieChart(today);
+  renderTrendChart(filtered);
+
+  renderInsight(today, yesterday);
+  renderComparison(today, yesterday);
 }
 
-/* =========================
-   DATA CONVERSION
-========================= */
-function convert(d) {
+
+// Convert raw → app format
+function convertData(d) {
+  const solar = Math.round(d.renewable * 0.6);
+  const wind = Math.round(d.renewable * 0.4);
+
   return {
     date: d.date,
-    solar: Math.round(d.renewable * 0.6),
-    wind: Math.round(d.renewable * 0.4),
+    solar,
+    wind,
     coal: d.thermal,
     hydro: d.hydro,
     nuclear: d.nuclear
   };
 }
 
-/* =========================
-   SUMMARY
-========================= */
+
+// Summary
 function renderSummary(data) {
-  let total = data.reduce((sum, d) =>
-    sum + d.thermal + d.renewable + d.hydro + d.nuclear, 0);
+  let total = 0;
+
+  data.forEach(d => {
+    total += d.thermal + d.renewable + d.hydro + d.nuclear;
+  });
+
+  const avg = Math.round(total / data.length);
 
   document.getElementById("summary").innerText =
-    total + " MU total";
+    `Total: ${total} MU | Avg/day: ${avg} MU`;
 }
 
-/* =========================
-   PERCENT CALC
-========================= */
-function percent(arr) {
-  let sum = arr.reduce((a, b) => a + b, 0);
-  return arr.map(v => ((v / sum) * 100).toFixed(1));
-}
 
-/* =========================
-   PIE CHART
-========================= */
-function renderPie(d) {
+// PIE
+function renderPieChart(data) {
   if (pieChart) pieChart.destroy();
 
-  let values = [d.solar, d.wind, d.coal, d.hydro, d.nuclear];
-  let p = percent(values);
-
-  const ctx = document.getElementById("energyChart");
+  const ctx = document.getElementById('energyChart');
 
   pieChart = new Chart(ctx, {
-    type: "pie",
+    type: 'pie',
     data: {
-      labels: [
-        `Solar ${p[0]}%`,
-        `Wind ${p[1]}%`,
-        `Coal ${p[2]}%`,
-        `Hydro ${p[3]}%`,
-        `Nuclear ${p[4]}%`
-      ],
+      labels: ['Solar', 'Wind', 'Coal', 'Hydro', 'Nuclear'],
       datasets: [{
-        data: values
+        data: [
+          data.solar,
+          data.wind,
+          data.coal,
+          data.hydro,
+          data.nuclear
+        ]
       }]
-    },
-    options: {
-      animation: {
-        duration: 1000
-      }
     }
   });
 }
 
-/* =========================
-   TREND CHART
-========================= */
-function renderTrend(data) {
+
+// BAR TREND
+function renderTrendChart(data) {
   if (trendChart) trendChart.destroy();
 
-  const ctx = document.getElementById("trendChart");
+  const labels = data.map(d => d.date);
+
+  const coal = data.map(d => d.thermal);
+  const renewable = data.map(d => d.renewable);
+  const hydro = data.map(d => d.hydro);
+  const nuclear = data.map(d => d.nuclear);
+
+  const ctx = document.getElementById('trendChart');
 
   trendChart = new Chart(ctx, {
-    type: "bar",
+    type: 'bar',
     data: {
-      labels: data.map(d => d.date),
+      labels: labels,
       datasets: [
-        { label: "Coal", data: data.map(d => d.thermal) },
-        { label: "Renewable", data: data.map(d => d.renewable) },
-        { label: "Hydro", data: data.map(d => d.hydro) },
-        { label: "Nuclear", data: data.map(d => d.nuclear) }
+        { label: 'Coal', data: coal },
+        { label: 'Renewable', data: renewable },
+        { label: 'Hydro', data: hydro },
+        { label: 'Nuclear', data: nuclear }
       ]
-    },
-    options: {
-      responsive: true,
-      animation: {
-        duration: 1000
-      }
     }
   });
 }
 
-/* =========================
-   YEARLY CHART
-========================= */
-function renderYear(y) {
-  if (yearChart) yearChart.destroy();
 
-  let values = y.sources.map(s => s.value);
-  let p = percent(values);
-
-  const ctx = document.getElementById("yearChart");
-
-  yearChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: y.sources.map((s, i) => `${s.name} ${p[i]}%`),
-      datasets: [{
-        label: "Generation (BU)",
-        data: values
-      }]
-    },
-    options: {
-      responsive: true,
-      animation: {
-        duration: 1000
-      }
-    }
-  });
-
-  document.getElementById("yearSummary").innerText =
-    "Total: " + y.total + " BU";
-}
-
-/* =========================
-   INSIGHTS
-========================= */
+// Insight
 function renderInsight(today, yesterday) {
   let insights = [];
 
   if (today.coal > yesterday.coal) {
-    insights.push("Demand ↑ → Coal ↑");
+    insights.push("Demand increased → coal usage up");
   }
 
   if (today.solar < yesterday.solar) {
-    insights.push("Solar ↓");
+    insights.push("Solar output decreased");
   }
 
   if (today.wind > yesterday.wind) {
-    insights.push("Wind ↑");
+    insights.push("Wind energy improved");
+  }
+
+  if (insights.length === 0) {
+    insights.push("Energy usage stable");
   }
 
   document.getElementById("insight").innerText =
-    insights.join(" | ") || "Stable";
+    insights.join(" | ");
 }
 
-/* =========================
-   TIMEFRAME CHANGE
-========================= */
+
+// Comparison
+function renderComparison(today, yesterday) {
+  let changes = [];
+
+  if (today.coal > yesterday.coal) changes.push("Coal ↑");
+  else if (today.coal < yesterday.coal) changes.push("Coal ↓");
+
+  if (today.solar > yesterday.solar) changes.push("Solar ↑");
+  else if (today.solar < yesterday.solar) changes.push("Solar ↓");
+
+  if (today.wind > yesterday.wind) changes.push("Wind ↑");
+  else if (today.wind < yesterday.wind) changes.push("Wind ↓");
+
+  document.getElementById("comparison").innerText =
+    "Change vs Yesterday: " + changes.join(", ");
+}
+
+
+// Timeframe change
 document.getElementById("timeframe").addEventListener("change", (e) => {
   loadData(parseInt(e.target.value));
 });
 
-/* =========================
-   INIT
-========================= */
+
+// Initial load
 loadData(7);
